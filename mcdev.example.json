@@ -1,23 +1,14 @@
 {
-    "world_name": "联机大厅插件测试",
-    "game_executable_path": "填写 ModPC 的 Minecraft.Windows.exe 完整路径",
-    "world_folder_name": "mcdk_lobby_plugin_test",
-    "included_mod_dirs": [],
-    "include_debug_mod": false,
-    "auto_join_game": true,
-    "world_source_path": "",
-    "mcp_server_config": { "enabled": true, "server_ip": "127.0.0.1", "server_port": 19133 },
     "plugins": [
         {
             "enable": true,
-            "path": "./mcdk_lobby_plugin",
+            "path": "D:/myProject/mcdk/plugins/mcdk_lobby_plugin",
             "id": "com.zy.mcdk-lobby",
             "config": {
                 "launch_lobby": true,
-                "studio_directory": "D:/MCStudio",
+                "studio_directory": "",
                 "item_id": "填写作品ID",
                 "room_name": "联机大厅自测",
-                "client_version": "填写 mcdk games 列出的版本号",
                 "max_players": 4
             }
         }
