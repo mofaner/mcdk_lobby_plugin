@@ -1,94 +1,150 @@
-# mcdk_lobby_plugin
+# MCDK 联机大厅插件
 
-创建网易联机大厅自测房间，通过 mcdk 启动客户端，分别读取本地和云端日志。运行时不需要打开 MCS，但需要其安装目录中的网易 SDK。
+适用于网易我的世界的 MCDK 插件，支持联机大厅自测、作品与商品管理，方便在开发过程中上传包体、启动测试和查看日志。
 
-## 安装
+## 功能概览
 
-需要 Windows、MCS、mcdk，以及已有可用自测版本的联机大厅作品。
+- 启动联机大厅自测，自动创建房间并打开游戏。
+- 查看客户端与服务器日志，检查登录、启动和进服问题。
+- 上传地图 ZIP，更新作品的免机审自测。
+- 新建联机大厅作品、提交作品审核和删除作品草稿。
+- 新建商品、更新商品自测、提交商品审核和删除商品草稿。
+- 管理自测服与正式服的存储排序 key 和运营配置。
+- 提供 MCP 工具，可通过 AI 客户端或 MCDK 命令行调用。
 
-从 [Releases](https://github.com/mofaner/mcdk_lobby_plugin/releases) 下载压缩包，将 `mcdk_lobby_plugin` 文件夹放到 **MCDK 安装目录的 `plugins` 目录**，多个项目共用一份插件。例如 MCDK 位于 `D:/myProject/mcdk/mcdk.exe` 时，插件目录为 `D:/myProject/mcdk/plugins/mcdk_lobby_plugin/`，其中保留 `plugin.json`、插件 DLL 和 `lobby-login.exe` 等完整发布文件。
+## 安装与配置
 
-各项目复用现有的 `.mcdev.json`：将 `mcdev.example.json` 中的大厅插件条目合并到 `plugins` 数组，保留已有插件和其他配置；已有 `com.zy.mcdk-lobby` 条目时直接修改，不重复添加。示例仅包含插件扩展配置，不是完整的项目配置，不要用它覆盖 `.mcdev.json`。
+需要 Windows、[MCDK](https://github.com/GitHub-Zero123/MCDevTool) 和 MCS。使用时无需打开 MCS。
 
-填写插件配置中的作品 ID。`studio_directory` 可省略或留空：按盘符顺序查找各盘根目录下的 `MCStudio`，使用首个包含 `MPayCliCppWrapper.dll` 的目录；填写路径时只使用指定目录。自动搜索不扫描整盘，自定义安装位置需显式填写；找不到时会提示配置路径。`plugins[].path` 填写上述共享插件目录的**绝对路径**，按实际 MCDK 安装位置修改。游戏路径继续使用项目已有的 `game_executable_path`，可用 `mcdk games` 查询。大厅自动启动从游戏所在的四段数字版本目录（例如 `3.10.0.420447/Minecraft.Windows.exe`）获取网易客户端版本，无需配置 `client_version`，旧配置中的该字段不再参与自动启动。请保留原始版本目录；无法识别时会在登录和创建房间前报错。直接调用 `lobby_create_room` 同样自动识别版本。
+1. 从 [Releases](https://github.com/mofaner/mcdk_lobby_plugin/releases) 下载并解压插件，保留文件夹内的全部文件。
+2. 将 `mcdk_lobby_plugin` 文件夹放入 MCDK 安装目录的 `plugins` 文件夹。
+3. 将 [配置示例](mcdev.example.json) 中的插件条目合并到项目 `.mcdev.json` 的 `plugins` 数组，填写插件绝对路径和作品 ID。保留原有配置，不要覆盖整个文件。
 
-大厅自测时将插件的 `config.launch_lobby` 设为 `true`，并确保项目顶层的 `auto_join_game` 为 `true`；恢复本地测试时，将 `config.launch_lobby` 设为 `false`。切换前先结束当前测试。
+| 配置项 | 说明 |
+| --- | --- |
+| `plugins[].path` | 插件所在目录的绝对路径 |
+| `config.item_id` | 联机大厅作品 ID |
+| `config.launch_lobby` | `true` 启用大厅测试，`false` 恢复本地测试 |
+| `config.studio_directory` | MCS 安装目录；留空时查找各盘根目录下的 `MCStudio`，自定义位置需填写 |
+| `config.room_name` | 测试房间名称，默认“联机大厅自测” |
+| `config.max_players` | 房间人数，默认 4 |
 
-更新插件时，先结束正在使用它的测试并关闭登录窗口，再替换共享目录中的发布文件，所有引用它的项目共用新版。原来安装在项目内的插件也可以迁移到共享目录，并同步修改各项目的 `plugins[].path`。
+项目的 `auto_join_game` 设为 `true`。`game_executable_path` 使用网易游戏客户端路径，可通过 `mcdk games` 查询；请保留游戏原有的版本目录名称。
 
-## 开始与结束
+更新插件前，先结束测试并关闭登录窗口，再替换插件文件。多个项目可以共用同一份插件。
+
+## 开始测试
+
+作品需要已有可用的自测版本。在项目目录执行：
 
 ```powershell
 mcdk run --project . --session lobby-plugin --lane full --background
 ```
 
-插件自动登录、创建房间并启动游戏。首次在弹出的网易窗口登录，之后自动恢复有效登录。首次下载新资源时，在游戏中选择下载并加入。
+首次使用时，在弹出的窗口登录网易账号。之后会自动恢复有效登录，并创建房间、启动游戏。首次进入或资源更新时，需要在游戏中确认下载资源包。
 
-**不推荐开启代理的 TUN 模式进入游戏。** 网络不稳定可能导致进服失败或资源下载缓慢；遇到这些问题时，优先关闭 TUN 模式后重试。
+**测试期间保持登录窗口运行，可以最小化。** 换号前先结束测试，再点击窗口中的“切换账号”。
 
-**使用时保持登录窗口运行，可最小化；关闭会中断游戏连接。**
+网络代理可能导致游戏进服失败以及资源包下载缓慢。
 
-结束测试，在另一个终端执行：
+结束测试：
 
 ```powershell
 mcdk stop --session lobby-plugin --project .
 ```
 
-这会结束客户端并关闭本工具的房间，保留登录供下次使用。
+## 上传包体与免机审自测
 
-## 账号操作
-
-需要换号时，先结束测试，再点击窗口中的“切换账号”。
-
-运行中的 MCDK 会话使用 `mcdk call lobby_login`、`lobby_status`、`lobby_retry_login` 和 `lobby_switch_account`。`lobby_login` 默认使用项目的 MCS 目录，传入参数时覆盖项目值。
-
-游戏未启动时，可在插件目录用以下独立命令排查登录：
+使用有作品管理权限的账号登录后，指定作品 ID 和地图 ZIP 的绝对路径：
 
 ```powershell
-./lobby-login.exe login
-./lobby-login.exe status
-./lobby-login.exe retry
-./lobby-login.exe switch
+mcdk call lobby_publish_upload --session lobby-plugin --project . --args '{"item_id":"你的作品ID","zip_path":"D:/packs/world.zip"}'
+mcdk call lobby_publish_status --session lobby-plugin --project .
 ```
 
-命令返回 JSON。换号会打开网易登录窗口；用 `status` 查询，`login_state=authenticated` 表示登录完成。测试运行期间禁止换号。登录命令未指定目录或传入空字符串时，按盘符顺序查找各盘根目录下的 `MCStudio`；自定义安装位置用 `--studio-directory '实际目录'` 指定。
+上传工具使用**已经打包好的 ZIP**。ZIP 的唯一顶层目录内需包含 `level.dat`、`db/`、`behavior_packs/` 和 `resource_packs/`。
 
-## 日志与状态
+上传会替换该作品的自测包并提交免机审自测。正式审核通过 `lobby_item_review` 单独提交。上传期间保持登录窗口运行，避免同时在开发者平台编辑该作品。
 
-在已配置并启用插件的项目目录执行 `mcdk help lobby_create_room` 可查看工具参数。也可用 `mcdk help lobby_create_room --project '项目路径'` 指定项目；仅将插件放入 MCDK 的 `plugins` 目录，不会让未配置插件的项目自动识别这些工具。
+平台任务通过 `lobby_publish_status` 查看进度与结果：`running` 为执行中，`succeeded` 为完成，`submitted` 为已提交、等待确认，`failed` 为失败。失败后先检查作品当前状态，再决定是否重新操作。
+
+## 作品、商品与运营管理
+
+新建作品和商品会保存为草稿，自测、提审分别使用对应工具。新建大厅时需要确定是否开启内购，创建后无法修改。商品提审完成后，仍需按平台流程上架。
+
+存储排序 key 支持 `self_test`（自测服）和 `obt`（正式服）。运营配置使用 `self_test_config`、`obt_config` 填写 JSON，并通过 `config_note` 填写配置说明；未填写的环境保持原配置。正式服配置的生效以平台审核结果为准。
+
+管理写操作可通过 `dry_run=true` 预先检查参数和操作内容。各工具的完整参数可直接查询：
+
+```powershell
+mcdk help lobby_create_item --project .
+mcdk help lobby_goods_create --project .
+mcdk help lobby_operation_config --project .
+```
+
+## 查看状态与日志
 
 ```powershell
 mcdk call lobby_status --session lobby-plugin --project .
 mcdk call lobby_diagnose --session lobby-plugin --project .
 mcdk call lobby_local_logs --session lobby-plugin --project . --args '{"limit":30}'
-mcdk call lobby_server_logs --session lobby-plugin --project . --args '{"limit":30}'
+mcdk call lobby_server_logs --session lobby-plugin --project . --args '{"limit":30,"errors_only":true}'
 ```
 
-手动开房可执行 `mcdk call lobby_create_room --session lobby-plugin --args '{}'`，或通过 `--args '{"room_name":"临时测试","max_players":2}'` 覆盖本次设置。需先登录，且当前账号没有房间；该工具仅开房，不让已运行的客户端进服。房间名称默认“联机大厅自测”，人数默认 4。原调用中的 `name` 改为 `room_name`，不再接受 `client_version`。
+日志返回的 `next` 可作为下一次读取的 `since`；客户端与服务器日志分别记录读取位置。`errors_only=true` 用于筛选服务器错误日志。
 
-日志返回 `next`，下一次作为 `since` 传入；两端游标独立。本地游标只属于本次 mcdk 进程，重启后重新读取。插件不自动导出日志；本地缓存有容量上限，`dropped` 表示旧记录已移出缓存。
+启动状态不能代替游戏画面确认。若一直等待进服，请检查游戏是否弹出资源下载提示；插件无法读取资源下载进度。
 
-| 工具 | 作用 |
+## MCP 工具
+
+### 账号与房间
+
+| 工具 | 功能 |
 | --- | --- |
-| lobby_login | 打开登录程序，可选参数 studio_directory |
-| lobby_status | 登录、房间、启动阶段与首次下载提示 |
-| lobby_diagnose | 只读检查本地依赖、版本映射、认证及当前房间，指出优先处理的步骤 |
-| lobby_switch_account | 与界面共用的账号切换流程 |
-| lobby_retry_login | 与界面共用的登录重试流程 |
-| lobby_create_room | 按项目配置创建并启动自测房间，可覆盖 item_id、room_name、max_players |
-| lobby_room | 查询本工具房间及服务器状态 |
-| lobby_local_logs | 读取 mcdk 采集的客户端输出 |
-| lobby_server_logs | 按平台偏移量读取云端日志 |
-| lobby_stop_room | 关闭并退出本工具房间 |
+| `lobby_login` | 登录网易账号 |
+| `lobby_status` | 查看登录和测试状态 |
+| `lobby_diagnose` | 检查启动与进服问题 |
+| `lobby_switch_account` | 切换账号 |
+| `lobby_retry_login` | 重新登录 |
+| `lobby_create_room` | 创建自测房间 |
+| `lobby_room` | 查看房间状态 |
+| `lobby_stop_room` | 关闭测试房间 |
+| `lobby_local_logs` | 查看客户端日志 |
+| `lobby_server_logs` | 查看服务器日志 |
 
-`game_pid` 和 `control_connected` 均不代表已进入世界。`world_state` 区分 `not_started`（未准备客户端）、`waiting_client`（等待控制连接）、`waiting_world`（控制通道已连接，等待入服通知）、`in_world`（收到入服通知）、`failed`（控制通道失败）和 `stopped`（已停止）。控制通道失败只表示失去该通道，不能证明游戏本身崩溃。部分客户端不报告控制通道，等待状态也不能证明未进服。
+### 作品与商品
 
-首次进入或资源更新可能弹出“下载资源包”，需要在游戏中确认并等待完成。插件不设置资源下载超时，不会因等待较久自动判断进服失败。当前已核对的协议没有下载弹窗和进度信号，`download_state=unobservable`；无法自动区分主菜单、等待下载确认和下载中，应查看游戏画面。远程房间没有 DebugMod 时，不能依赖 `mcdk wait` 判定进服。
+| 工具 | 功能 |
+| --- | --- |
+| `lobby_publish_login` | 登录开发者平台 |
+| `lobby_publish_status` | 查看平台任务进度与结果 |
+| `lobby_publish_check` | 查看作品权限与自测状态 |
+| `lobby_publish_upload` | 上传包体并更新免机审自测 |
+| `lobby_publish_options` | 查询作品分类、图片要求和商品收费类型等选项 |
+| `lobby_create_item` | 新建联机大厅作品 |
+| `lobby_item_review` | 提交作品审核 |
+| `lobby_item_delete` | 删除作品草稿 |
+| `lobby_goods_list` | 查看商品列表与详情 |
+| `lobby_goods_create` | 新建商品 |
+| `lobby_goods_self_test` | 更新商品自测 |
+| `lobby_goods_review` | 提交商品审核 |
+| `lobby_goods_delete` | 删除商品草稿 |
+| `lobby_storage_sort_keys` | 管理存储排序 key |
+| `lobby_operation_config` | 管理运营配置 |
 
-本地日志的 `collection_state` 区分 `not_connected`（两个事件均未接入）、`partial`（只接入一个事件）、`subscribed_no_output`（已订阅但尚未收到输出）和 `receiving`（已收到输出）。`stdout_subscribed`、`stderr_subscribed` 表示具体订阅结果。`output_state=no_output` 只表示此游标之后暂无输出，不能断言游戏没有日志；云端日志与本地采集是两条独立通道。
+### 其他使用方式
 
-云端日志新增 `text`，清理常见 HTML 展示标签、解码实体并保留换行、缩进和 `<module>`。原始 `entity` 保留不变。使用 `--args '{"limit":100,"errors_only":true}'` 筛选含错误关键词的批次；为了保留 traceback，匹配时保留整批上下文，不做逐行删除。`output_state` 区分无输出、无匹配错误和可用文本。分页可能截断堆栈，可增大 `limit` 或继续读取 `next`；过滤未命中也按原始批次推进游标。
+未启动游戏时，也可以在插件目录使用独立命令：
 
-`lobby_diagnose` 不启动登录程序、不创建或关闭房间。返回 `checks` 和 `blocked_at`，检查当前插件已通过宿主加载、SDK 必需文件、游戏路径与版本、平台版本映射、认证和当前房间。诊断可执行不代表全部检查通过，需读取各项 `state`。当前没有已核对的作品自测版本查询接口，该项标为 `unverified`，需在开发者平台确认；SDK 文件存在也不等于原生组件运行兼容性已验证。未登录时平台查询标为未验证。
+```powershell
+./lobby-login.exe login
+./lobby-login.exe publish-upload 作品ID D:/packs/world.zip
+./lobby-login.exe publish-status
+```
 
-参考：[MCDevTool SDK](https://github.com/GitHub-Zero123/MCDevTool/tree/main/sdk/plugin-sdk)、[官方大厅自测说明](https://mc.163.com/dev/mcmanual/mc-dev/mcguide/26-联机大厅/20-联机大厅调试与多人测试文档.html?catalog=1)。
+Cookie 登录作为备选方式：调用 `lobby_publish_login`，参数为 `{"method":"cookie"}`，在弹出的窗口中导入开发者平台 Cookie。有效登录会保存供下次使用，过期后需要重新导入。Cookie 仅在登录窗口填写，不要放入项目配置或聊天。
+
+## 相关项目与文档
+
+- [MCDK](https://github.com/GitHub-Zero123/MCDevTool)：网易我的世界开发与调试工具。
+- [联机大厅调试与多人测试文档](https://mc.163.com/dev/mcmanual/mc-dev/mcguide/26-联机大厅/20-联机大厅调试与多人测试文档.html?catalog=1)：官方大厅测试说明。
