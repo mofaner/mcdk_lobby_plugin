@@ -28,7 +28,7 @@
 | `config.room_name` | 测试房间名称，默认“联机大厅自测” |
 | `config.max_players` | 房间人数，默认 4 |
 
-项目的 `auto_join_game` 设为 `true`。`game_executable_path` 使用网易游戏客户端路径，可通过 `mcdk games` 查询；请保留游戏原有的版本目录名称。
+项目的 `auto_join_game` 设为 `true`。`game_executable_path` 指向网易游戏客户端的 `Minecraft.Windows.exe`，支持原始数字版本目录及 `PCLauncher_x64` 目录。数字目录按网易版本匹配服务器；`PCLauncher_x64` 读取可执行文件中的引擎版本，并确认平台支持对应服务器版本后才创建房间。请保留游戏原有的目录名称。
 
 更新插件前，先结束测试并关闭登录窗口，再替换插件文件。多个项目可以共用同一份插件。
 
