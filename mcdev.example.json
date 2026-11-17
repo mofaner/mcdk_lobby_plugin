@@ -1,4 +1,9 @@
 {
+    "ptvsd_debugger": {
+        "enabled": true,
+        "ip": "127.0.0.1",
+        "port": 56788
+    },
     "plugins": [
         {
             "enable": true,

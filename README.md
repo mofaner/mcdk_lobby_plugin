@@ -5,6 +5,7 @@
 ## 功能概览
 
 - 查询客户端与服务器双端日志，支持增量读取、服务器错误筛选和报错上下文查看。
+- 通过官方调试接口执行大厅客户端 Python，直接返回类型、文本表示和 JSON 值。
 - 启动联机大厅自测，自动创建房间并打开游戏，检查登录、启动和进服问题。
 - 管理联机大厅作品，支持新建草稿、上传包体、更新免机审自测、提交审核和删除草稿。
 - 新建商品、更新商品自测、提交商品审核和删除商品草稿。
@@ -93,6 +94,31 @@ mcdk call lobby_server_logs --session lobby-plugin --project . --args '{"limit":
 日志返回的 `next` 可作为下一次读取的 `since`；客户端与服务器日志分别记录读取位置。`errors_only=true` 用于筛选服务器错误日志。
 
 启动状态不能代替游戏画面确认。若一直等待进服，请检查游戏是否弹出资源下载提示；插件无法读取资源下载进度。
+
+## 执行大厅客户端代码
+
+在 `.mcdev.json` 顶层启用官方调试端口，然后重新启动游戏：
+
+```json
+"ptvsd_debugger": {
+    "enabled": true,
+    "ip": "127.0.0.1",
+    "port": 56788
+}
+```
+
+进服后调用 `lobby_execute_code`。参数沿用原生 `execute_code` 的 `code`、`is_client`、`direct_return`，默认在客户端同步执行并返回结果：
+
+```powershell
+mcdk call lobby_execute_code --session lobby-plugin --args '{"code":"6*7"}'
+mcdk call lobby_execute_code --session lobby-plugin --args '{"code":"import mod.client.extraClientApi as clientApi; _result = {\"player_id\": clientApi.GetLocalPlayerId()}"}'
+```
+
+单个表达式直接返回值，多行代码通过 `_result` 返回；未赋值时返回 `None`。结果包含 `return_type`、`return_repr` 和 `return_value`，元组转换为 JSON 数组，其他对象返回类型与表示。变量保留在独立的调试命名空间内，不使用当前暂停模块的变量；命名空间持续到游戏进程结束。
+
+`direct_return=false` 只确认任务已安排到客户端下一帧，执行结果通过 `get_latest_logs` 中的 `[LobbyCode]` 查看，不生成额外日志文件。工具只支持客户端，`is_client=false` 会报错，不能执行大厅云端服务器代码，也不会替换 MCDK 原生 `execute_code`。
+
+执行时会短暂暂停客户端主线程，并在结束后恢复和断开调试器；不要同时用 VS Code 等调试器连接同一端口。连接与协议等待有超时，但不能强制终止正在执行的 Python，因此不要提交无限循环、长时间阻塞或等待客户端下一帧才会完成的同步代码。遇到执行状态未知、线程恢复失败或返回值过大时，代码可能已经生效，应先检查游戏状态，不要直接重试有副作用的操作。单次返回的 JSON 上限为 200000 字节。
 
 ## MCP 工具
 
