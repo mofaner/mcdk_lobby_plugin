@@ -11,6 +11,7 @@
             "id": "com.zy.mcdk-lobby",
             "config": {
                 "launch_lobby": true,
+                "guest_account": false,
                 "studio_directory": "",
                 "item_id": "填写作品ID",
                 "room_name": "联机大厅自测",

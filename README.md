@@ -53,20 +53,48 @@ mcdk run --project . --session lobby-plugin --lane full --background
 mcdk stop --session lobby-plugin --project .
 ```
 
-## 上传包体与免机审自测
+## 双账号联机测试
 
-使用有作品管理权限的账号登录后，指定作品 ID 和地图 ZIP 的绝对路径：
+两个会话使用相同的客户端版本。
+
+先按上节启动房主会话 `lobby-plugin`，房间人数上限至少设为 2。第二个窗口使用有权参与该作品多人测试的另一账号。两个客户端使用不同的 full Lane 和调试端口。
+
+在同一项目目录执行以下 PowerShell 命令启动客号。它会读取房主当前的房间号，核对作品并加入房间。
 
 ```powershell
-mcdk call lobby_publish_upload --session lobby-plugin --project . --args '{"item_id":"你的作品ID","zip_path":"D:/packs/world.zip"}'
-mcdk call lobby_publish_status --session lobby-plugin --project .
+$plugins = (Get-Content -Raw .mcdev.json | ConvertFrom-Json).plugins
+$lobby = $plugins | Where-Object id -eq 'com.zy.mcdk-lobby'
+$lobby.config | Add-Member -NotePropertyName guest_account -NotePropertyValue $true -Force
+$guestConfig = 'plugins=' + (ConvertTo-Json -InputObject $plugins -Compress -Depth 16)
+mcdk run --project . --session lobby-guest --lane full --set $guestConfig --set ptvsd_debugger.port=56789 --background
+```
+
+通过会话名分别读取客户端输出。每个会话单独保存自己的 `next` 游标，返回的 `account_slot` 和 `game_pid` 可用于核对来源。
+
+```powershell
+mcdk call lobby_local_logs --project . --session lobby-plugin --args '{"limit":30}'
+mcdk call lobby_local_logs --project . --session lobby-guest --args '{"limit":30}'
+mcdk stop --project . --session lobby-guest
+mcdk stop --project . --session lobby-plugin
+```
+
+先停止客号会话可让客号单独退房，房主可以继续测试。停止房主会话会关闭房间。
+
+## 上传包体与免机审自测
+
+单独上传自测包时，在插件安装目录使用以下命令。登录窗口就绪并完成账号登录后即可上传，无需运行 `mcdk run`、打开游戏或创建房间。
+
+```powershell
+.\lobby-login.exe login
+.\lobby-login.exe publish-upload 作品ID D:/packs/world.zip
+.\lobby-login.exe publish-status
 ```
 
 上传工具使用**已经打包好的 ZIP**。ZIP 的唯一顶层目录内需包含 `level.dat`、`db/`、`behavior_packs/` 和 `resource_packs/`。
 
 上传会替换该作品的自测包并提交免机审自测。正式审核通过 `lobby_item_review` 单独提交。上传期间保持登录窗口运行，避免同时在开发者平台编辑该作品。
 
-平台任务通过 `lobby_publish_status` 查看进度与结果：`running` 为执行中，`succeeded` 为完成，`submitted` 为已提交、等待确认，`failed` 为失败。失败后先检查作品当前状态，再决定是否重新操作。
+平台任务通过 `publish-status` 查看进度与结果。已有大厅游戏会话也可调用 MCP 工具 `lobby_publish_upload` 和 `lobby_publish_status`。`running` 为执行中，`succeeded` 为完成，`submitted` 为已提交、等待确认，`failed` 为失败。失败后先检查作品当前状态，再决定是否重新操作。
 
 ## 作品、商品与运营管理
 
