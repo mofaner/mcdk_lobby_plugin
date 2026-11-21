@@ -173,3 +173,16 @@ Cookie 登录作为备选方式：调用 `lobby_publish_login`，参数为 `{"me
 
 - [MCDK](https://github.com/GitHub-Zero123/MCDevTool)：网易我的世界开发与调试工具。
 - [联机大厅调试与多人测试文档](https://mc.163.com/dev/mcmanual/mc-dev/mcguide/26-联机大厅/20-联机大厅调试与多人测试文档.html?catalog=1)：官方大厅测试说明。
+
+## 普通机审自测与反馈
+
+已有包体可用 `lobby_machine_self_test` 提交普通机审自测。作品已经在自测时，传 `replace_self_test: true` 会先撤销旧自测，再送审同一版本。切换期间平台可能影响现有玩家连接。任务状态 `submitted` 表示已受理。
+
+`lobby_review_feedback` 返回作品当前状态、版本、带时间的审核反馈和最近一页中标题匹配该作品的系统消息。传 `read_messages: true` 可读取这些消息的正文，平台会将它们标记为已读。应按提交时间区分本轮反馈和历史消息。
+
+房间正在由旧版插件运行时，可使用新版本的独立平台命令，由网易 SDK 登录开发者平台：
+
+```powershell
+.\lobby-login.exe --platform-once D:/MCStudio publish_machine_test 作品ID --replace-self-test
+.\lobby-login.exe --platform-once D:/MCStudio publish_feedback 作品ID --read-messages
+```
